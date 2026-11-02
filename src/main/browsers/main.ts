@@ -12,21 +12,23 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('@electron/remote/main').initialize();
 
-// 判断当前系统是否支持 acrylic（仅 Windows 11 起提供该材质）
-const isWin11OrLater = (): boolean => {
+// 判断当前系统是否支持 acrylic。
+// 官方文档：win.setBackgroundMaterial 仅支持 Windows 11 22H2 及以上
+const isAcrylicSupported = (): boolean => {
   if (process.platform !== 'win32') return false;
   try {
-    const [major, minor, build] = os.release().split('.').map(Number);
-    // Windows 11 起 NT 版本号为 10.0.22000+
-    return major > 10 || (major === 10 && build >= 22000);
+    const parts = os.release().split('.').map(Number);
+    const major = parts[0];
+    const build = parts[2];
+    // Windows 11 的 NT 版本为 10.0.22000+；22H2 起 build >= 22621
+    return major > 10 || (major === 10 && build >= 22621);
   } catch (e) {
     return false;
   }
 };
 
-// 液态玻璃主题需要窗口透明以透出系统毛玻璃材质。
-// 窗口的 transparent 只能在创建时设定，而窗口创建前无法同步读 DB，
-// 故由主进程在 ready 阶段读取配置后调用 setInitialConfig 注入。
+// 液态玻璃主题需要在窗口创建时就决定背景处理方式，
+// 而窗口创建前无法同步读 DB，故由主进程在 ready 阶段读配置后注入。
 let initialConfig: any = null;
 
 export const setInitialConfig = (config: any) => {
@@ -39,13 +41,16 @@ export const isLiquidGlass = (config: any): boolean =>
 const applyGlassMaterial = (win: any, config: any) => {
   if (!isLiquidGlass(config)) return;
   try {
+    if (!isAcrylicSupported()) {
+      // 系统不支持（Win10 等）：保留半透明深色背景，由 CSS 提供玻璃观感
+      win.setBackgroundColor('#1c1c28e6');
+      return;
+    }
+    // 关键：不能与 transparent:true 同时使用，否则 DWM 不绘制材质
     win.setBackgroundColor('#00000000');
-    // Win11  acrylic 真·毛玻璃；Win10 无此 API，静默降级为 CSS 模拟
     if (typeof win.setBackgroundMaterial === 'function') {
       win.setBackgroundMaterial('acrylic');
     }
-    // 透明窗口默认不可调整大小，需显式开启
-    win.setResizable(true);
   } catch (e) {
     // 材质设置失败不影响启动，界面会退回 CSS 模拟效果
   }
@@ -75,8 +80,9 @@ export default () => {
       title: '拉比克',
       show: false,
       skipTaskbar: true,
-      // 液态玻璃需透明窗口；否则沿用原有实色背景
-      transparent: glass,
+      // 液态玻璃不用 transparent：transparent 会绕过 DWM 的材质绘制，
+      // 导致 setBackgroundMaterial 无效、只剩一层灰色。
+      // 正确做法是普通窗口 + 背景色全透明，由 DWM 绘制系统亚克力。
       backgroundColor: glass
         ? '#00000000'
         : nativeTheme.shouldUseDarkColors
