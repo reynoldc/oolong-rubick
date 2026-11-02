@@ -247,9 +247,4 @@ const clearSearchValue = () => {
     -webkit-app-region: drag;
   }
 }
-// 液态玻璃：容器本身透明，由内层玻璃面板提供质感。
-// 若 CSS 变量未生效（--color-body-bg 仍为 #fff），这里兜底避免白色矩形。
-body.liquid-glass #components-layout {
-  background: transparent;
-}
 </style>

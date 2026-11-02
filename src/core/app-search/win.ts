@@ -33,25 +33,34 @@ const safeIconName = (name: string): string =>
   name.replace(/[\\/:*?"<>|]/g, '_');
 
 /**
- * 生成单个应用图标。
+ * 生成单个应用图标，并**直接把 dataURL 写回 app.icon**。
  *
- * 说明：原先使用 extract-file-icon（原生模块），但其 addon.node 不会被打进
- * app.asar，打包后 require 必然失败、图标全空白。改为调用主进程
- * app.getFileIcon()，无原生依赖，且对 .lnk 快捷方式同样有效。
+ * 历史问题：
+ * 1) extract-file-icon 是原生模块，addon.node 不会被打进 app.asar，打包后
+ *    require 必然失败；
+ * 2) 改用 app.getFileIcon 后落盘到 %TEMP%，再用 image:// 协议读取，
+ *    但路径含空格/中文时 URL 规范化会让协议解析失败，图标依旧空白
+ *    （DeepSeek Harness 这类带空格的安装路径必现）。
+ *
+ * 因此最终方案：图标以 dataURL 形式直接内嵌到 app.icon，
+ * 不依赖自定义协议、不依赖临时文件、不受路径字符影响。
+ * 落盘仅作为二次启动的加速缓存。
  */
 const getico = (app): Promise<void> => {
   const appName = app.name;
   if (iconTaskCache.has(appName)) return iconTaskCache.get(appName)!;
   const task = (async () => {
     try {
-      // 重要：文件名必须与下方 icon 字段构造出的路径**完全一致**。
-      // 主进程 image:// 协议处理器会做 decodeURI()，因此这里不能用
-      // encodeURIComponent 命名，否则解码后路径指向不存在的文件，图标全空白。
       const iconpath = path.join(icondir, `${safeIconName(appName)}.png`);
+      // 命中磁盘缓存：读回并转 dataURL
       try {
-        if (fs.statSync(iconpath).size > 0) return;
+        const buf = fs.readFileSync(iconpath);
+        if (buf.length > 0) {
+          app.icon = `data:image/png;base64,${buf.toString('base64')}`;
+          return;
+        }
       } catch (e) {
-        // 文件不存在，继续生成
+        // 无缓存，继续生成
       }
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { ipcRenderer } = require('electron');
@@ -68,9 +77,15 @@ const getico = (app): Promise<void> => {
       if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) {
         return;
       }
+      // 关键：直接内嵌，避免再走 image:// 协议
+      app.icon = dataUrl;
       const base64 = dataUrl.split(',')[1];
       if (!base64) return;
-      fs.writeFileSync(iconpath, Buffer.from(base64, 'base64'));
+      try {
+        fs.writeFileSync(iconpath, Buffer.from(base64, 'base64'));
+      } catch (e) {
+        // 缓存写入失败不影响显示
+      }
     } catch (e) {
       // 单个图标失败不影响整体，静默跳过
     }
@@ -123,19 +138,14 @@ function fileDisplay(dirPath: string): Promise<void> {
             keyWords.push(firstLatter);
           }
 
-          // 与 darwin 保持一致，走已注册的 image:// 协议，
-          // 否则裸路径无法被 <img src> 加载
-          // 与 getico 写盘路径保持一致（含非法字符清洗），
-          // 且不使用 encodeURIComponent——主进程 image:// 协议会执行 decodeURI()
-          const icon =
-            'image://' +
-            path.join(os.tmpdir(), 'ProcessIcon', `${safeIconName(appName)}.png`);
-
+          // icon 先留空，由 getico() 异步填入 dataURL。
+          // 不再使用 image:// 协议——含空格/中文的临时路径在 URL 规范化后
+          // 协议解析会失败，导致图标空白。
           const appInfo = {
             value: 'plugin',
             desc: appDetail.target,
             type: 'app',
-            icon,
+            icon: '',
             pluginType: 'app',
             action: `start "dummyclient" "${appDetail.target}"`,
             keyWords: keyWords,

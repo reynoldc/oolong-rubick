@@ -10,13 +10,17 @@
   // 边框
   --color-border-light: #f0f0f0;
 
-  // 液态玻璃相关（默认关闭，由 .liquid-glass 覆盖）
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --glass-highlight: rgba(255, 255, 255, 0.85);
-  --glass-shadow: rgba(15, 23, 42, 0.14);
-  --glass-blur: 18px;
-  --glass-radius: 16px;
+  // 液态玻璃配色（默认值，.liquid-glass 下会被覆盖）
+  --glass-bg-from: #1b2540;
+  --glass-bg-via: #131a2e;
+  --glass-bg-to: #0b1020;
+  --glass-surface: rgba(255, 255, 255, 0.055);
+  --glass-surface-strong: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.28);
+  --glass-shadow: rgba(0, 0, 0, 0.42);
+  --glass-blur: 20px;
+  --glass-radius: 14px;
 }
 
 .dark {
@@ -32,69 +36,150 @@
   --color-border-light: #33333d;
 }
 
-// ===== 液态玻璃主题 =====
-// 主窗口在支持 acrylic 的系统上会设为透明并由系统合成毛玻璃；
-// 不支持时（如 Win10）下面的 backdrop-filter 会接管，得到一致的观感。
+// ===== 液态玻璃主题（纯 CSS 方案）=====
+// 窗口保持不透明，由渲染层自己绘制玻璃质感：
+// 深蓝紫渐变底 + 多层径向光晕 + 半透明面板 + 高光描边 + 柔和内阴影。
 .liquid-glass {
-  --color-text-primary: rgba(255, 255, 255, 0.95);
-  --color-text-content: #f2f6ff;
-  --color-text-desc: rgba(226, 232, 240, 0.68);
-  // 背景改为半透明，透出系统材质
-  --color-body-bg: rgba(18, 24, 38, 0.55);
-  --color-menu-bg: rgba(18, 24, 38, 0.62);
-  --color-list-hover: rgba(255, 255, 255, 0.1);
-  --color-input-hover: rgba(255, 255, 255, 0.14);
-  --color-border-light: rgba(255, 255, 255, 0.14);
-
-  --glass-bg: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.22);
-  --glass-highlight: rgba(255, 255, 255, 0.42);
-  --glass-shadow: rgba(2, 6, 23, 0.28);
-  --glass-blur: 22px;
+  --color-text-primary: rgba(255, 255, 255, 0.96);
+  --color-text-content: #eef3ff;
+  --color-text-desc: rgba(200, 214, 240, 0.6);
+  --color-body-bg: transparent;
+  --color-menu-bg: rgba(20, 28, 48, 0.72);
+  --color-list-hover: rgba(255, 255, 255, 0.09);
+  --color-input-hover: rgba(255, 255, 255, 0.12);
+  --color-border-light: rgba(255, 255, 255, 0.12);
 }
 
-// 玻璃卡片：用于包裹内容区，提供模糊 + 高光描边
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--glass-radius);
-  box-shadow:
-    0 8px 28px var(--glass-shadow),
-    inset 0 1px 0 var(--glass-highlight);
+// 背景层：渐变 + 两团彩色光晕，模拟玻璃后方透出的光线
+html.liquid-glass,
+body.liquid-glass {
+  background: var(--glass-bg-to);
+  background-image:
+    radial-gradient(
+      880px 420px at 12% -10%,
+      rgba(96, 165, 250, 0.32),
+      transparent 62%
+    ),
+    radial-gradient(
+      720px 380px at 88% 8%,
+      rgba(167, 139, 250, 0.26),
+      transparent 60%
+    ),
+    radial-gradient(
+      620px 420px at 50% 108%,
+      rgba(45, 212, 191, 0.16),
+      transparent 66%
+    ),
+    linear-gradient(
+      165deg,
+      var(--glass-bg-from) 0%,
+      var(--glass-bg-via) 46%,
+      var(--glass-bg-to) 100%
+    );
+  background-attachment: fixed;
 }
 
-// 液态玻璃下的主容器：让窗口背景透明，仅内容有玻璃质感。
-//
-// 关键：html/body 默认是不透明白色（浏览器默认样式），必须显式设为透明，
-// 否则会看到一整块白色矩形挡住系统毛玻璃。
-// 注意 .liquid-glass 挂在 body 上，而 html 是 body 的父级、无法被后代选择器
-// 命中，因此 html 用 :has() 处理，并保留一条 html 上的兜底规则。
-html:has(body.liquid-glass),
-body.liquid-glass,
 body.liquid-glass #app,
 body.liquid-glass #components-layout {
   background: transparent;
 }
 
-// 搜索栏与列表在玻璃主题下：半透明玻璃底 + 模糊，保证内容可读
-.liquid-glass .rubick-select,
-.liquid-glass .options {
-  background: rgba(18, 24, 38, 0.42);
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+// 通用玻璃面板：半透明 + 模糊 + 高光上边缘 + 柔和投影
+.glass-panel {
+  background: var(--glass-surface);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    0 10px 30px var(--glass-shadow),
+    inset 0 1px 0 var(--glass-highlight);
 }
 
-.liquid-glass .quick-launch .ql-item.active,
-.liquid-glass .op-item.active {
-  background: var(--color-list-hover);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+// ===== 搜索栏：玻璃质感 =====
+.liquid-glass .rubick-select {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.09),
+    rgba(255, 255, 255, 0.035)
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+// 搜索输入框本身透明，避免出现白色方块
+.liquid-glass .main-input,
+.liquid-glass .main-input .ant-input,
+.liquid-glass .main-input .ant-select-selection,
+.liquid-glass .main-input .ant-select-selection__rendered {
+  background: transparent !important;
+  color: var(--color-text-content);
+}
+
+.liquid-glass .main-input .ant-input::placeholder {
+  color: rgba(200, 214, 240, 0.5);
+}
+
+// ===== 结果/快速启动列表：玻璃面板 =====
+.liquid-glass .options {
+  background: rgba(16, 24, 42, 0.55);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border-top: 1px solid var(--glass-border);
+}
+
+// 列表项：底部分隔用极淡高光，悬停/选中用半透明高亮
+.liquid-glass .op-item,
+.liquid-glass .ant-list-item {
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  color: var(--color-text-content);
+}
+
+.liquid-glass .op-item.active,
+.liquid-glass .ql-item.active {
+  background: var(--glass-surface-strong);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 4px 14px rgba(0, 0, 0, 0.22);
   border-radius: 10px;
 }
 
-// 玻璃质感的分隔线（替代实色 dashed 边框）
+// 快速启动面板的分隔线
 .liquid-glass .quick-launch .ql-section {
-  border-top: 1px solid var(--glass-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+// 列表面板内的文字与描述保持可读
+.liquid-glass .ant-list-item-meta-title,
+.liquid-glass .ant-list-item-meta-description {
+  color: var(--color-text-content);
+}
+
+.liquid-glass .ant-list-item-meta-description {
+  color: var(--color-text-desc);
+}
+
+// 收藏弹窗（antd Modal）也套用玻璃底
+.liquid-glass .ant-modal-content {
+  background: rgba(20, 28, 48, 0.92);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 var(--glass-highlight);
+}
+
+.liquid-glass .ant-modal-header {
+  background: transparent;
+}
+
+.liquid-glass .ant-modal-title,
+.liquid-glass .picker-name {
+  color: var(--color-text-content);
 }

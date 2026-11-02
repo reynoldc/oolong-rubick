@@ -25,17 +25,10 @@ const LIQUID_GLASS = 'LIQUID_GLASS';
 
 const syncGlassClass = (cfg: any) => {
   const on = cfg?.perf?.custom?.theme === LIQUID_GLASS;
+  // CSS 方案：class 同时挂到 html 和 body，
+  // 便于背景渐变、面板样式等规则命中最外层元素
+  document.documentElement.classList.toggle('liquid-glass', on);
   document.body.classList.toggle('liquid-glass', on);
-  // 浏览器默认给 html/body 不透明白底，若不显式置透明，
-  // 会看到一整块白色矩形盖住系统毛玻璃。CSS 里 :has() 兜底，
-  // 这里再直接设置一次，确保生效。
-  if (on) {
-    document.documentElement.style.background = 'transparent';
-    document.body.style.background = 'transparent';
-  } else {
-    document.documentElement.style.background = '';
-    document.body.style.background = '';
-  }
   return on;
 };
 

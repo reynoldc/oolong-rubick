@@ -252,9 +252,9 @@ class API extends DBInstance {
   }
 
   /**
-   * 切换主窗口的毛玻璃材质（液态玻璃主题）。
-   * 注意：Windows 上 acrylic 需要系统为 Win11 22H2+，且不能与
-   * transparent:true 并用（那会让 DWM 跳过材质绘制，只剩灰底）。
+   * 切换主窗口背景（液态玻璃主题）。
+   * 采用纯 CSS 方案：窗口始终不透明，玻璃质感完全由渲染层绘制，
+   * 这里只负责同步窗口底色，避免启动瞬间或降级时露出白色底。
    */
   public setWindowMaterial({ data }, window: BrowserWindow) {
     const win: any = window;
@@ -262,10 +262,9 @@ class API extends DBInstance {
     const glass = !!data?.glass;
     try {
       if (typeof win.setBackgroundMaterial === 'function') {
-        win.setBackgroundMaterial(glass ? 'acrylic' : 'none');
+        win.setBackgroundMaterial('none');
       }
-      // 关闭时退回深色实底；开启时置全透明交给 DWM 绘制
-      win.setBackgroundColor(glass ? '#00000000' : '#1c1c28');
+      win.setBackgroundColor(glass ? '#0b1020' : '#1c1c28');
       return true;
     } catch (e) {
       return false;

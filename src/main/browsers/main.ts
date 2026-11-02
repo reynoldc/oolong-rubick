@@ -1,6 +1,5 @@
 import { app, BrowserWindow, protocol, nativeTheme } from 'electron';
 import path from 'path';
-import os from 'os';
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
 // import versonHandler from '../common/versionHandler';
 import localConfig from '@/main/common/initLocalConfig';
@@ -12,23 +11,8 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('@electron/remote/main').initialize();
 
-// 判断当前系统是否支持 acrylic。
-// 官方文档：win.setBackgroundMaterial 仅支持 Windows 11 22H2 及以上
-const isAcrylicSupported = (): boolean => {
-  if (process.platform !== 'win32') return false;
-  try {
-    const parts = os.release().split('.').map(Number);
-    const major = parts[0];
-    const build = parts[2];
-    // Windows 11 的 NT 版本为 10.0.22000+；22H2 起 build >= 22621
-    return major > 10 || (major === 10 && build >= 22621);
-  } catch (e) {
-    return false;
-  }
-};
-
-// 液态玻璃主题需要在窗口创建时就决定背景处理方式，
-// 而窗口创建前无法同步读 DB，故由主进程在 ready 阶段读配置后注入。
+// 液态玻璃采用纯 CSS 方案，窗口保持不透明，这里仅决定初始底色。
+// 窗口创建前无法同步读 DB，故由主进程在 ready 阶段读配置后注入。
 let initialConfig: any = null;
 
 export const setInitialConfig = (config: any) => {
@@ -41,18 +25,15 @@ export const isLiquidGlass = (config: any): boolean =>
 const applyGlassMaterial = (win: any, config: any) => {
   if (!isLiquidGlass(config)) return;
   try {
-    if (!isAcrylicSupported()) {
-      // 系统不支持（Win10 等）：保留半透明深色背景，由 CSS 提供玻璃观感
-      win.setBackgroundColor('#1c1c28e6');
-      return;
-    }
-    // 关键：不能与 transparent:true 同时使用，否则 DWM 不绘制材质
-    win.setBackgroundColor('#00000000');
+    // 采用纯 CSS 方案：窗口保持不透明，由渲染层绘制玻璃质感。
+    // 不再使用 transparent / setBackgroundMaterial —— 前者会绕过 DWM
+    // 材质绘制只剩灰底，后者的亚克力在部分环境不稳定。
+    win.setBackgroundColor('#0b1020');
     if (typeof win.setBackgroundMaterial === 'function') {
-      win.setBackgroundMaterial('acrylic');
+      win.setBackgroundMaterial('none');
     }
   } catch (e) {
-    // 材质设置失败不影响启动，界面会退回 CSS 模拟效果
+    // 设置失败不影响启动
   }
 };
 
