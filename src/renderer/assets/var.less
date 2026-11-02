@@ -9,6 +9,14 @@
   --color-input-hover: #fff;
   // 边框
   --color-border-light: #f0f0f0;
+
+  // 液态玻璃相关（默认关闭，由 .liquid-glass 覆盖）
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-shadow: rgba(15, 23, 42, 0.14);
+  --glass-blur: 18px;
+  --glass-radius: 16px;
 }
 
 .dark {
@@ -22,4 +30,61 @@
   --color-input-hover: #444d;
   // 边框
   --color-border-light: #33333d;
+}
+
+// ===== 液态玻璃主题 =====
+// 主窗口在支持 acrylic 的系统上会设为透明并由系统合成毛玻璃；
+// 不支持时（如 Win10）下面的 backdrop-filter 会接管，得到一致的观感。
+.liquid-glass {
+  --color-text-primary: rgba(255, 255, 255, 0.95);
+  --color-text-content: #f2f6ff;
+  --color-text-desc: rgba(226, 232, 240, 0.68);
+  // 背景改为半透明，透出系统材质
+  --color-body-bg: rgba(18, 24, 38, 0.55);
+  --color-menu-bg: rgba(18, 24, 38, 0.62);
+  --color-list-hover: rgba(255, 255, 255, 0.1);
+  --color-input-hover: rgba(255, 255, 255, 0.14);
+  --color-border-light: rgba(255, 255, 255, 0.14);
+
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --glass-highlight: rgba(255, 255, 255, 0.42);
+  --glass-shadow: rgba(2, 6, 23, 0.28);
+  --glass-blur: 22px;
+}
+
+// 玻璃卡片：用于包裹内容区，提供模糊 + 高光描边
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    0 8px 28px var(--glass-shadow),
+    inset 0 1px 0 var(--glass-highlight);
+}
+
+// 液态玻璃下的主容器：让窗口背景透明，仅内容有玻璃质感
+.liquid-glass #components-layout {
+  background: transparent;
+}
+
+// 搜索栏与列表在玻璃主题下使用半透明底 + 模糊
+.liquid-glass .rubick-select,
+.liquid-glass .options {
+  background: transparent;
+}
+
+.liquid-glass .quick-launch .ql-item.active,
+.liquid-glass .op-item.active {
+  background: var(--color-list-hover);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 10px;
+}
+
+// 玻璃质感的分隔线（替代实色 dashed 边框）
+.liquid-glass .quick-launch .ql-section {
+  border-top: 1px solid var(--glass-border);
 }

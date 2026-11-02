@@ -33,3 +33,13 @@ export const WINTER = {
   successColor: '#c3d94e',
   infoColor: '#bfa782',
 };
+
+// 液态玻璃：深色底衬 + 半透明玻璃层，配合主窗口 acrylic 材质使用
+export const LIQUID_GLASS = {
+  theme: 'LIQUID_GLASS',
+  primaryColor: '#7dd3fc',
+  errorColor: '#fb7185',
+  warningColor: '#fbbf24',
+  successColor: '#86efac',
+  infoColor: '#93c5fd',
+};

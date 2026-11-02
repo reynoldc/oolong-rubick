@@ -43,6 +43,7 @@ export default {
           summer: '立夏',
           autumn: '立秋',
           winter: '立冬',
+          liquidGlass: '液态玻璃',
           personalized: '用户设置',
           greeting: '搜索框欢迎语',
           logo: '头像',

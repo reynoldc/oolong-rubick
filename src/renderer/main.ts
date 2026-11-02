@@ -19,6 +19,29 @@ import 'ant-design-vue/dist/antd.variable.min.css';
 
 const config: any = localConfig.getConfig();
 
+// 液态玻璃主题：挂到 body，供 var.less 中的 .liquid-glass 规则命中。
+// 切换主题时同步维护该 class。
+const LIQUID_GLASS = 'LIQUID_GLASS';
+
+const syncGlassClass = (cfg: any) => {
+  const on = cfg?.perf?.custom?.theme === LIQUID_GLASS;
+  document.body.classList.toggle('liquid-glass', on);
+  return on;
+};
+
+const glassOn = syncGlassClass(config);
+
+// 通知主进程同步窗口材质（acrylic），使桌面背景真正透过来
+try {
+  const { ipcRenderer } = window.require('electron');
+  ipcRenderer.send('msg-trigger', {
+    type: 'setWindowMaterial',
+    data: { glass: glassOn },
+  });
+} catch (e) {
+  // 主进程不支持时静默降级为纯 CSS 效果
+}
+
 ConfigProvider.config({
   theme: config.perf.custom || {},
 });
@@ -28,6 +51,17 @@ window.rubick.changeTheme = () => {
   ConfigProvider.config({
     theme: config.perf.custom || {},
   });
+  // 主题切换后同步玻璃 class 与窗口材质
+  const on = syncGlassClass(config);
+  try {
+    const { ipcRenderer } = window.require('electron');
+    ipcRenderer.send('msg-trigger', {
+      type: 'setWindowMaterial',
+      data: { glass: on },
+    });
+  } catch (e) {
+    //
+  }
 };
 
 createApp(App)

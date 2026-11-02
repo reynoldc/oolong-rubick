@@ -1,5 +1,6 @@
 import { app, BrowserWindow, protocol, nativeTheme } from 'electron';
 import path from 'path';
+import os from 'os';
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
 // import versonHandler from '../common/versionHandler';
 import localConfig from '@/main/common/initLocalConfig';
@@ -11,6 +12,37 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('@electron/remote/main').initialize();
 
+// 判断当前系统是否支持 acrylic（仅 Windows 11 起提供该材质）
+const isWin11OrLater = (): boolean => {
+  if (process.platform !== 'win32') return false;
+  try {
+    const [major, minor, build] = os.release().split('.').map(Number);
+    // Windows 11 起 NT 版本号为 10.0.22000+
+    return major > 10 || (major === 10 && build >= 22000);
+  } catch (e) {
+    return false;
+  }
+};
+
+// 液态玻璃主题需要窗口透明以透出系统毛玻璃材质
+export const isLiquidGlass = (config: any): boolean =>
+  !!config && config.perf?.custom?.theme === 'LIQUID_GLASS';
+
+const applyGlassMaterial = (win: any, config: any) => {
+  if (!isLiquidGlass(config)) return;
+  try {
+    win.setBackgroundColor('#00000000');
+    // Win11  acrylic 真·毛玻璃；Win10 无此 API，静默降级为 CSS 模拟
+    if (typeof win.setBackgroundMaterial === 'function') {
+      win.setBackgroundMaterial('acrylic');
+    }
+    // 透明窗口默认不可调整大小，需显式开启
+    win.setResizable(true);
+  } catch (e) {
+    // 材质设置失败不影响启动，界面会退回 CSS 模拟效果
+  }
+};
+
 export default () => {
   let win: any;
 
@@ -21,6 +53,8 @@ export default () => {
   };
 
   const createWindow = async () => {
+    const config = await localConfig.getConfig();
+    const glass = isLiquidGlass(config);
     win = new BrowserWindow({
       height: WINDOW_HEIGHT,
       minHeight: WINDOW_MIN_HEIGHT,
@@ -31,7 +65,13 @@ export default () => {
       title: '拉比克',
       show: false,
       skipTaskbar: true,
-      backgroundColor: nativeTheme.shouldUseDarkColors ? '#1c1c28' : '#fff',
+      // 液态玻璃需透明窗口；否则沿用原有实色背景
+      transparent: glass,
+      backgroundColor: glass
+        ? '#00000000'
+        : nativeTheme.shouldUseDarkColors
+        ? '#1c1c28'
+        : '#fff',
       webPreferences: {
         webSecurity: false,
         backgroundThrottling: false,
@@ -42,6 +82,7 @@ export default () => {
         spellcheck: false,
       },
     });
+    applyGlassMaterial(win, config);
     if (process.env.WEBPACK_DEV_SERVER_URL) {
       // Load the url of the dev server if in development mode
       win.loadURL(process.env.WEBPACK_DEV_SERVER_URL as string);

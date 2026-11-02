@@ -11,6 +11,7 @@
             <a-radio-button value="SUMMER">{{ $t('feature.settings.account.summer') }}</a-radio-button>
             <a-radio-button value="AUTUMN">{{ $t('feature.settings.account.autumn') }}</a-radio-button>
             <a-radio-button value="WINTER">{{ $t('feature.settings.account.winter') }}</a-radio-button>
+            <a-radio-button value="LIQUID_GLASS">{{ $t('feature.settings.account.liquidGlass') }}</a-radio-button>
           </a-radio-group>
         </div>
       </div>
@@ -96,6 +97,14 @@ const changeTheme = () => {
     ...state.custom,
     ...Themes[theme.value],
   };
+  // 液态玻璃需要主窗口以 transparent 创建才能透出系统毛玻璃，
+  // 而窗口透明属性只能在创建时设定，故必须重启后才完整生效。
+  if (theme.value === 'LIQUID_GLASS') {
+    ipcRenderer.send('msg-trigger', {
+      type: 'showNotification',
+      data: { body: '液态玻璃主题将在重启 Rubick 后完整生效' },
+    });
+  }
 };
 
 // const reset = () => {

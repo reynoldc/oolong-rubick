@@ -44,6 +44,7 @@ export default {
           summer: 'Summer',
           autumn: 'Autumn',
           winter: 'Winter',
+          liquidGlass: 'Liquid Glass',
           personalized: 'Personalized',
           greeting: 'Search Box Greeting',
           logo: 'Avatar',
