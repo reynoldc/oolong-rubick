@@ -5,7 +5,7 @@ import electron, {
   protocol,
   BrowserWindow,
 } from 'electron';
-import { main, guide } from './browsers';
+import { main, guide, setInitialConfig } from './browsers';
 import commonConst from '../common/utils/commonConst';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -66,6 +66,9 @@ class App {
       checkVersion();
       await localConfig.init();
       const config = await localConfig.getConfig();
+      // 窗口创建需要同步拿到主题（transparent 只能创建时设定），
+      // 必须在 createWindow() 之前注入
+      setInitialConfig(config);
       if (!config.perf.common.guide) {
         guide().init();
         config.perf.common.guide = true;

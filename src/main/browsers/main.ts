@@ -24,7 +24,15 @@ const isWin11OrLater = (): boolean => {
   }
 };
 
-// 液态玻璃主题需要窗口透明以透出系统毛玻璃材质
+// 液态玻璃主题需要窗口透明以透出系统毛玻璃材质。
+// 窗口的 transparent 只能在创建时设定，而窗口创建前无法同步读 DB，
+// 故由主进程在 ready 阶段读取配置后调用 setInitialConfig 注入。
+let initialConfig: any = null;
+
+export const setInitialConfig = (config: any) => {
+  initialConfig = config;
+};
+
 export const isLiquidGlass = (config: any): boolean =>
   !!config && config.perf?.custom?.theme === 'LIQUID_GLASS';
 
@@ -53,8 +61,10 @@ export default () => {
   };
 
   const createWindow = async () => {
-    const config = await localConfig.getConfig();
-    const glass = isLiquidGlass(config);
+    // 使用 ready 阶段注入的配置（同步可得）。
+    // 注意：此处绝不能 await —— init() 会在 createWindow() 之后同步访问
+    // win.webContents，若 win 赋值被推迟到微任务之后会直接抛错。
+    const glass = isLiquidGlass(initialConfig);
     win = new BrowserWindow({
       height: WINDOW_HEIGHT,
       minHeight: WINDOW_MIN_HEIGHT,
@@ -82,7 +92,8 @@ export default () => {
         spellcheck: false,
       },
     });
-    applyGlassMaterial(win, config);
+    // 窗口已就绪，同步应用玻璃材质（Win10 无 API 时内部静默降级）
+    applyGlassMaterial(win, initialConfig);
     if (process.env.WEBPACK_DEV_SERVER_URL) {
       // Load the url of the dev server if in development mode
       win.loadURL(process.env.WEBPACK_DEV_SERVER_URL as string);
