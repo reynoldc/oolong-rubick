@@ -11,6 +11,7 @@ import optionsManager from './options';
 import {
   PLUGIN_INSTALL_DIR as baseDir,
   PLUGIN_HISTORY,
+  FAVORITE_APPS,
 } from '@/common/constans/renderer';
 import { message } from 'ant-design-vue';
 
@@ -26,13 +27,24 @@ const createPluginManager = (): any => {
     currentPlugin: {},
     pluginLoading: false,
     pluginHistory: [],
+    favoriteApps: [],
   });
 
   const appList: any = ref([]);
 
   const initPlugins = async () => {
     initPluginHistory();
-    appList.value = await appSearch(nativeImage);
+    initFavoriteApps();
+    try {
+      // 整体限时 8s：图标生成依赖主进程 IPC，个别快捷方式可能卡住，
+      // 超时则先返回空列表，保证主窗口不被阻塞（图标后续可重试生成）
+      appList.value = await Promise.race([
+        appSearch(nativeImage),
+        new Promise((resolve) => setTimeout(() => resolve([]), 8000)),
+      ]);
+    } catch (e) {
+      appList.value = [];
+    }
     initLocalStartPlugin();
   };
 
@@ -40,6 +52,13 @@ const createPluginManager = (): any => {
     const result = window.rubick.db.get(PLUGIN_HISTORY) || {};
     if (result && result.data) {
       state.pluginHistory = result.data;
+    }
+  };
+
+  const initFavoriteApps = () => {
+    const result = window.rubick.db.get(FAVORITE_APPS) || {};
+    if (result && result.data) {
+      state.favoriteApps = result.data;
     }
   };
 
@@ -158,6 +177,31 @@ const createPluginManager = (): any => {
     });
   };
 
+  const persistFavoriteApps = () => {
+    const result = window.rubick.db.get(FAVORITE_APPS) || {};
+    window.rubick.db.put({
+      _id: FAVORITE_APPS,
+      _rev: result._rev,
+      data: JSON.parse(JSON.stringify(state.favoriteApps)),
+    });
+  };
+
+  const addFavoriteApp = (app) => {
+    if (state.favoriteApps.some((item) => item.action === app.action)) return;
+    state.favoriteApps = [...state.favoriteApps, JSON.parse(JSON.stringify(app))];
+    persistFavoriteApps();
+  };
+
+  const removeFavoriteApp = (app) => {
+    state.favoriteApps = state.favoriteApps.filter(
+      (item) => item.action !== app.action
+    );
+    persistFavoriteApps();
+  };
+
+  const isFavoriteApp = (app) =>
+    state.favoriteApps.some((item) => item.action === app.action);
+
   const { searchValue, onSearch, setSearchValue, placeholder } =
     searchManager();
   const {
@@ -250,6 +294,11 @@ const createPluginManager = (): any => {
     readClipboardContent,
     setPluginHistory,
     changePluginHistory,
+    favoriteApps: toRefs(state).favoriteApps,
+    appList,
+    addFavoriteApp,
+    removeFavoriteApp,
+    isFavoriteApp,
   };
 };
 

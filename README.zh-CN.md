@@ -1,106 +1,85 @@
-[English](./README.md) | 简体中文
-
-
-<div align= "center">
-<img align="center" width=200 src="./public/logo.png" />
-</div>
+# oolong-rubick
 
 <div align="center">
-    <h1>Rubick</h1>
-    <img alt="累计下载数" src="https://img.shields.io/github/downloads/rubickCenter/rubick/total" />
-    <a href="https://github.com/rubickCenter/rubick/releases"><img alt="最新发布版本" src="https://img.shields.io/github/package-json/v/rubickCenter/rubick" /></a>
-    <a href="https://github.com/rubickCenter/rubick/actions"><img alt="github action 构建" src="https://img.shields.io/github/actions/workflow/status/rubickCenter/rubick/main.yml" /></a>
-    <a href="https://github.com/rubickCenter/rubick/blob/master/LICENSE"><img alt="许可证" src="https://img.shields.io/github/license/rubickCenter/rubick" /></a>
-    <a href="https://github.com/rubickCenter/rubick/stargazers"><img alt="github 收藏数" src="https://img.shields.io/github/stars/rubickCenter/rubick?style=social" /></a>
-    <a href="https://gitee.com/monkeyWang/rubick"><img alt="gitee 镜像源" src="https://img.shields.io/badge/Gitee--yellow.svg?style=social&logo=data:image/svg+xml;base64,PHN2ZyB0PSIxNTc0ODM3MTM4ODM3IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjE3NzAiICAgICB3aWR0aD0iMTYiIGhlaWdodD0iMTYiPiAgICA8cGF0aCBkPSJNODkxIDQyOC44SDQ2NS44Yy0yMC40IDAtMzcgMTYuNS0zNyAzN3Y5Mi40YzAgMjAuNCAxNi41IDM3IDM3IDM3aDI1OC45YzIwLjQgMCAzNyAxNi42IDM3IDM3djE4LjRjMCA2MS4zLTQ5LjcgMTEwLjktMTEwLjkgMTEwLjlIMjk5LjRjLTIwLjQgMC0zNy0xNi42LTM3LTM3VjM3My4yYzAtNjEuMyA0OS43LTExMC45IDExMC45LTExMC45aDUxNy42YzIwLjQgMCAzNy0xNi41IDM3LTM3bDAuMS05Mi4zYzAtMjAuNC0xNi41LTM3LTM3LTM3SDM3My4zQzIyMC4yIDk2IDk2IDIyMC4yIDk2IDM3My4zVjg5MWMwIDIwLjQgMTYuNiAzNyAzNyAzN2g1NDUuNEM4MTYuMiA5MjggOTI4IDgxNi4zIDkyOCA2NzguNFY0NjUuOGMwLTIwLjQtMTYuNi0zNy0zNy0zN3oiICAgICAgICAgIGZpbGw9IiNkODFlMDYiIHAtaWQ9IjE3NzEiPjwvcGF0aD48L3N2Zz4=" /></a>
+  <img align="center" width=200 src="./public/logo.png" />
 </div>
 
-<div align= "center">
-<img align="center" src="https://picx.zhimg.com/80/v2-f8fe09ef125dac5fdcbef3fe00f92b21_720w.png" />
-</div>
+## 这是什么
 
-开源的插件化桌面端效率工具箱。插件是基于 npm 进行安装和卸载，非常轻便。插件数据支持 webdav 多端同步，非常安全。支持内网部署，可二次定制化开发，非常灵活。
+本项目是基于开源项目 [Rubick](https://github.com/rubickCenter/rubick) 的**二次开发版本**。
 
-## 获取 rubick
-下载最新的安装包：
+Rubick 是一个插件化的桌面效率工具箱（uTools 风格），插件以 npm 包形式安装卸载，支持 webdav 多端数据同步与内网部署。本分支在其基础上，针对**主窗口启动体验**做了定制增强。
 
-* [Rubick Mac OS](https://github.com/rubickCenter/rubick/releases)
-* [Rubick Windows](https://github.com/rubickCenter/rubick/releases)
-* [Rubick Linux](https://github.com/rubickCenter/rubick/releases)
+## 致谢
 
-## 使用文档
+本项目全部核心能力来自 Rubick 原作者 [muwoo](https://github.com/muwoo) 及 [rubickCenter](https://github.com/rubickCenter) 社区的开源贡献。
 
-[Rubick 官网](https://rubick.vip)
+- 上游仓库：https://github.com/rubickCenter/rubick
+- 官网：https://rubick.vip
+- 文档：https://rubickCenter.github.io/rubick/
 
-[Rubick Docs](https://rubickCenter.github.io/rubick/)
+本项目遵循上游的 [MIT License](./LICENSE)，仅在主窗口交互层做了增量开发，绝无冒认原创之意。感谢原作者的无私分享。
 
-## 如何使用 rubick
+## 本分支新增功能
 
-安装完成 rubick 后，可以通过快捷键 Alt/Option+R  可以快速呼起主程序。主程序输入框内输入关键词可以搜索出对应的 App、插件、文件... 选择即可使用。如果没有想要的功能，可以点击左侧的 logo 进入插件市场寻找自己想要的插件进行安装。
+### 1. 快速启动面板
 
-## 支持能力
-- [x] 基于 npm 包模式的插件管理，安装插件和安装 npm 包一样简单
-- [x] 支持 webdav 多端数据同步，真正的数据安全同步
-- [x] 独一无二的系统插件模式，让插件成为 rubick 的一部分
-- [x] 支持快速启动本地 app、文件、文件夹
-- [x] 支持企业化内网部署
-- [x] 支持多语言
+打开主窗口（默认快捷键 `Alt/Option + R`）后，搜索栏下方新增一个快速启动面板，包含两个区块：
 
+- **最近使用**：自动记录通过搜索启动过的本机应用，按最近使用排序，方便一键再次启动。
+- **我的收藏**：可自定义编辑的应用列表。点击区块标题右侧的 `+` 从本机已安装应用中搜索添加；右键图标可移除。
 
-## 核心功能展示
-### 1. 搜索系统应用
-支持拼音和缩写来搜索系统安装应用：
+数据分别存放在 PouchDB 的 `rubick-plugin-history`（最近使用）与 `rubick-favorite-apps`（我的收藏）中。
 
-![](https://pic1.zhimg.com/80/v2-70c105ff7fb1e955fc67ffa5a5564092_720w.gif)
+### 2. 方向键快捷选择
 
-### 2. UI类插件安装
-点击搜索框右侧 `rubick` 图标，进入插件市场，选择所需插件，点击下载按钮即可下载，下载完成后在已安装 tab 下可以找到安装插件。
-安装完成后，输入插件呼起命令即可使用对应插件：
+保持原版规则：打开面板后默认选中第一项，按 `↑`/`↓` 在「最近使用 → 我的收藏」之间连续移动光标，越界自动回绕，按 `Enter` 或空格直接启动选中项。
 
-![](https://pic1.zhimg.com/80/v2-5906bba20fe0a67f9e7a5a8c11341305_720w.gif)
+### 3. 修复应用图标不显示
 
-### 3. 系统类插件安装
-系统插件安装方式和UI类一样，在插件市场选择`系统分类`，寻找适合自己的系统插件安装即可。
+原版在 Windows 下本机应用图标大面积空白，本分支修复了该问题，涉及两个独立成因：
+
+- **原生模块不可用**：原实现依赖 `extract-file-icon`（需要本地编译的原生模块），其 `addon.node` 不会被打进 `app.asar`，打包后调用必然失败且被静默吞掉。改为调用主进程 `app.getFileIcon()`，经异步 IPC 通道取回图标，无原生依赖。
+- **文件名与协议解码不匹配**：图标文件以 `encodeURIComponent` 后的名字写盘，而 `image://` 协议处理器会执行 `decodeURI()`，导致读取时指向不存在的文件——纯英文应用名恰好能显示，中文名与带空格的名字全部空白。现统一使用原应用名（并对 Windows 非法文件名字符做清洗）。
+
+此外原扫描函数 `fileDisplay` 是异步递归但同步返回，首次运行时图标尚未写入就被返回；现已改为 Promise 化并加入并发控制（并发 8、单个超时 3s、整体超时 8s），不阻塞主窗口启动。
+
+## 使用
+
+安装后按 `Alt/Option + R` 呼出主程序，输入关键词可搜索应用、插件、文件。点击左侧 logo 进入插件市场。
+
+详细的插件开发与使用说明请参考 [Rubick 官方文档](https://rubickCenter.github.io/rubick/)。
+
+## 构建
+
+需要 Node 16（项目 volta 锁定 `16.20.2`）。若在更高版本 Node 上构建，需额外设置环境变量：
+
+```bash
+# Node 17+ 需要（webpack 4 的 OpenSSL 兼容）
+export NODE_OPTIONS=--openssl-legacy-provider
+# Windows 编译原生模块时指定 VS 版本
+export npm_config_msvs_version=2022
+
+yarn install --ignore-engines
+yarn run electron:build --win --x64
+```
+
+构建产物输出在 `build/` 目录。
+
+> 注意：本分支仅构建 x64 安装包（原版 win 配置含 ia32，其 `electron-clipboard-ex` 无可用产物会导致打包中断）。
+
+## 目录结构简述
 
 ```
-系统插件安装成功后，需要重启 rubick 才能生效
+src/
+├── main/           Electron 主进程：窗口工厂、插件 API 总线、快捷键与托盘
+├── renderer/       渲染进程：搜索主界面 + 插件调度
+│   └── components/quick-launch.vue   新增：快速启动面板
+├── core/           跨平台核心：插件安装、PouchDB、本机应用搜索、截图
+└── common/         共享常量与工具
+feature/            内置系统插件：插件市场、已安装、账户、设置、开发者
 ```
-
-### 4. 基于 webdav 的多端数据同步
-在 `rubick` 内搜索`偏好设置` 进入 `账户和设置` -> `多端数据同步`；即可对 `rubick` 插件使用数据进行 `导出` 和 `导入`。
-
-![](https://pic1.zhimg.com/80/v2-ff85793741e4dff82a729d3eb3d41551_720w.png)
-
-## 关联仓库
-
-[Rubick 插件仓库](https://gitee.com/rubick-center)
-
-[Rubick 插件数据库](https://gitcode.net/rubickcenter/rubick-database)
-
-[Rubick Plugin CLI](https://github.com/rubickCenter/rubick-plugin-cli)
-
-## 赞助
-### 1. 加入知识星球
-我们在知识星球积累了大量的关于 rubick 的知识和常见问题，您可以付费加入我们的知识星球来一起讨论。我们将随时解答！
-
-<img width=400 src=https://picx.zhimg.com/80/v2-6deabf65175d18080439ef813102d18c_720w.png />
-
-### 2. 打赏喝杯咖啡
-如果项目对你有帮助，可以请我喝杯咖啡赞赏！
-
-<div align= "left">
-<img width="180" src="https://picx.zhimg.com/80/v2-911d249dc454f3460451a4e1ecceeb14_720w.png">
-<img width="180" src="https://picx.zhimg.com/80/v2-3160247d6099053405e6cd2cb6afb5e5_720w.png">
-</div>
-
-## 反馈
-对本项目有兴趣或者想要交流学习的同学可以扫码加下面的微信，备注 rubick，帮助我们更好的成长：
-
-![image](https://user-images.githubusercontent.com/21073039/127327603-9796f246-ee4b-4950-a69d-ce3205ec9569.png)
-
-## 贡献
-This project exists thanks to all the people who contribute. [[Contribute](https://github.com/rubickCenter/rubick/graphs/contributors)]. <a href="https://github.com/rubickCenter/rubick/graphs/contributors"><img src="https://opencollective.com/rubick/contributors.svg?width=890&button=false" /></a>
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/rubickCenter/rubick/blob/master/LICENSE) file for details.
 
+[MIT](./LICENSE) —— 继承自上游 [Rubick](https://github.com/rubickCenter/rubick)。

@@ -23,7 +23,6 @@ module.exports = {
       mainProcessWatch: ['src/main'],
       externals: [
         'pouchdb',
-        'extract-file-icon',
         'npm',
         'electron-screenshots',
         '@electron/remote',
@@ -91,7 +90,7 @@ module.exports = {
           target: [
             {
               target: 'nsis',
-              arch: ['x64', 'ia32'],
+              arch: ['x64'],
             },
           ],
         },

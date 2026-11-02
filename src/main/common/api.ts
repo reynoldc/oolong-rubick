@@ -64,6 +64,12 @@ class API extends DBInstance {
       event.returnValue = data;
       // event.sender.send(`msg-back-${arg.type}`, data);
     });
+    // 异步通道：sendSync 无法正确返回 async handler 的结果（returnValue 在
+    // await 让出后才被赋值，调用方早已拿到 undefined），故单独提供 invoke 通道
+    ipcMain.handle('msg-trigger-async', async (event, arg) => {
+      const window = arg.winId ? BrowserWindow.fromId(arg.winId) : mainWindow;
+      return await this[arg.type](arg, window, event);
+    });
     // 按 ESC 退出插件
     mainWindow.webContents.on('before-input-event', (event, input) =>
       this.__EscapeKeyDown(event, input, mainWindow)

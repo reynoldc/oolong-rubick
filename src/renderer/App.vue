@@ -10,6 +10,7 @@
       :placeholder="placeholder"
       :pluginLoading="pluginLoading"
       :pluginHistory="pluginHistory"
+      :quickLaunchLength="quickLaunchLength"
       :clipboardFile="clipboardFile || []"
       @choosePlugin="choosePlugin"
       @focus="searchFocus"
@@ -24,18 +25,26 @@
       :currentSelect="currentSelect"
       :options="options"
       :clipboardFile="clipboardFile || []"
+      :favoriteApps="favoriteApps"
+      :appList="appList"
       @setPluginHistory="setPluginHistory"
       @choosePlugin="choosePlugin"
+      @favoriteAdd="addFavoriteApp"
+      @favoriteRemove="removeFavoriteApp"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { watch, ref, toRaw } from 'vue';
+import { watch, ref, toRaw, computed } from 'vue';
 import { exec } from 'child_process';
 import Result from './components/result.vue';
 import Search from './components/search.vue';
-import getWindowHeight from '../common/utils/getWindowHeight';
+import getWindowHeight, {
+  SECTION_TITLE_HEIGHT,
+  QUICK_LAUNCH_ROW_HEIGHT,
+  FAVORITE_EMPTY_HEIGHT,
+} from '../common/utils/getWindowHeight';
 import createPluginManager from './plugins-manager';
 import useDrag from '../common/utils/dragWindow';
 import { getGlobal } from '@electron/remote';
@@ -65,14 +74,53 @@ const {
   pluginHistory,
   setPluginHistory,
   changePluginHistory,
+  favoriteApps,
+  appList,
+  addFavoriteApp,
+  removeFavoriteApp,
 } = createPluginManager();
 
 initPlugins();
 
+const config: any = ref(localConfig.getConfig());
+
 const currentSelect = ref(0);
 const menuPluginInfo: any = ref({});
 
-const config: any = ref(localConfig.getConfig());
+// 近期使用（仅应用类，不含插件）
+const recentApps = computed(() =>
+  (pluginHistory.value || []).filter((item) => item.pluginType === 'app')
+);
+
+// 快速启动面板是否展示：「我的收藏」区块无论如何都要在（+ 是添加入口），
+// 只有完全关闭 history 开关时才隐藏
+const showQuickLaunch = computed(
+  () =>
+    !options.value.length &&
+    !searchValue.value &&
+    !clipboardFile.value.length &&
+    config.value.perf.common.history
+);
+
+// 快速启动面板里的格子总数（先最近使用，再我的收藏）
+const quickLaunchLength = computed(() => {
+  if (!showQuickLaunch.value) return 0;
+  return recentApps.value.length + (favoriteApps.value || []).length;
+});
+
+// 快速启动面板需要的窗口高度
+const quickLaunchHeight = computed(() => {
+  if (!showQuickLaunch.value) return 0;
+  const recentLen = recentApps.value.length;
+  const favLen = (favoriteApps.value || []).length;
+  return (
+    // 最近使用：标题 + 一行图标（无历史时整块不占高度）
+    (recentLen > 0 ? SECTION_TITLE_HEIGHT + QUICK_LAUNCH_ROW_HEIGHT : 0) +
+    // 我的收藏：标题 + 图标行/空态
+    SECTION_TITLE_HEIGHT +
+    (favLen > 0 ? QUICK_LAUNCH_ROW_HEIGHT : FAVORITE_EMPTY_HEIGHT)
+  );
+});
 
 getPluginInfo({
   pluginName: 'feature',
@@ -84,17 +132,13 @@ getPluginInfo({
 });
 
 watch(
-  [options, pluginHistory, currentPlugin],
+  [options, pluginHistory, favoriteApps, currentPlugin],
   () => {
+    // 保持原版规则：默认自动选中第一项
     currentSelect.value = 0;
     if (currentPlugin.value.name) return;
     window.rubick.setExpendHeight(
-      getWindowHeight(
-        options.value,
-        pluginLoading.value || !config.value.perf.common.history
-          ? []
-          : pluginHistory.value
-      )
+      getWindowHeight(options.value, [], quickLaunchHeight.value)
     );
   },
   {
@@ -102,15 +146,24 @@ watch(
   }
 );
 
+// 方向键移动光标：
+// 有搜索结果时在结果列表里走，否则在快速启动面板（最近使用 + 我的收藏）里走。
+// 保持原版规则：默认已选中第一项，越界自动回绕。
 const changeIndex = (index) => {
-  const len = options.value.length || pluginHistory.value.length;
+  const len = options.value.length || quickLaunchLength.value;
   if (!len) return;
-  if (currentSelect.value + index > len - 1) {
+  // 光标越界时（如列表长度变化）先归位
+  if (currentSelect.value < 0 || currentSelect.value > len - 1) {
+    currentSelect.value = index > 0 ? 0 : len - 1;
+    return;
+  }
+  const next = currentSelect.value + index;
+  if (next > len - 1) {
     currentSelect.value = 0;
-  } else if (currentSelect.value + index < 0) {
+  } else if (next < 0) {
     currentSelect.value = len - 1;
   } else {
-    currentSelect.value = currentSelect.value + index;
+    currentSelect.value = next;
   }
 };
 
@@ -130,45 +183,50 @@ const choosePlugin = (plugin) => {
   if (options.value.length) {
     const currentChoose = options.value[currentSelect.value];
     currentChoose.click();
-  } else {
-    const localPlugins = getGlobal('LOCAL_PLUGINS').getLocalPlugins();
-    const currentChoose = plugin || pluginHistory.value[currentSelect.value];
-    let hasRemove = true;
-    if (currentChoose.pluginType === 'app') {
-      hasRemove = false;
-      changePluginHistory(currentChoose);
-      exec(currentChoose.action);
-      return;
-    }
-    localPlugins.find((plugin) => {
-      if (plugin.name === currentChoose.originName) {
-        hasRemove = false;
-        return true;
-      }
-      return false;
-    });
-    if (hasRemove) {
-      const result = window.rubick.db.get(PLUGIN_HISTORY) || {};
-      const history = result.data.filter(
-        (item) => item.originName !== currentChoose.originName
-      );
-      setPluginHistory(history);
-      return message.warning('插件已被卸载！');
-    }
-    changePluginHistory(currentChoose);
-    window.rubick.openPlugin(
-      JSON.parse(
-        JSON.stringify({
-          ...currentChoose,
-          ext: {
-            code: currentChoose.feature.code,
-            type: currentChoose.cmd.type || 'text',
-            payload: null,
-          },
-        })
-      )
-    );
+    return;
   }
+  // 快速启动面板模式：按光标索引取项（先最近使用，再我的收藏）
+  const quickItems = [
+    ...(pluginHistory.value || []).filter((item) => item.pluginType === 'app'),
+    ...(favoriteApps.value || []),
+  ];
+  const currentChoose = plugin || quickItems[currentSelect.value];
+  if (!currentChoose) return;
+  if (currentChoose.pluginType === 'app') {
+    changePluginHistory(currentChoose);
+    exec(currentChoose.action);
+    return;
+  }
+  const localPlugins = getGlobal('LOCAL_PLUGINS').getLocalPlugins();
+  let hasRemove = true;
+  localPlugins.find((plugin) => {
+    if (plugin.name === currentChoose.originName) {
+      hasRemove = false;
+      return true;
+    }
+    return false;
+  });
+  if (hasRemove) {
+    const result = window.rubick.db.get(PLUGIN_HISTORY) || {};
+    const history = result.data.filter(
+      (item) => item.originName !== currentChoose.originName
+    );
+    setPluginHistory(history);
+    return message.warning('插件已被卸载！');
+  }
+  changePluginHistory(currentChoose);
+  window.rubick.openPlugin(
+    JSON.parse(
+      JSON.stringify({
+        ...currentChoose,
+        ext: {
+          code: currentChoose.feature.code,
+          type: currentChoose.cmd.type || 'text',
+          payload: null,
+        },
+      })
+    )
+  );
 };
 
 const clearSearchValue = () => {

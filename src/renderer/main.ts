@@ -10,6 +10,7 @@ import {
   Row,
   Col,
   Divider,
+  Modal,
 } from 'ant-design-vue';
 import App from './App.vue';
 import localConfig from './confOp';
@@ -39,4 +40,5 @@ createApp(App)
   .use(Row)
   .use(Col)
   .use(Divider)
+  .use(Modal)
   .mount('#app');

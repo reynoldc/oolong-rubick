@@ -71,6 +71,7 @@ const props: any = defineProps({
     default: '',
   },
   pluginHistory: (() => [])(),
+  quickLaunchLength: { type: Number, default: 0 },
   currentPlugin: {},
   pluginLoading: Boolean,
   clipboardFile: (() => [])(),
@@ -109,8 +110,9 @@ const keydownEvent = (e, key: string) => {
       modifiers,
     },
   });
+  // 快速启动面板（最近使用 + 我的收藏）里的可选项数量
   const runPluginDisable =
-    (e.target.value === '' && !props.pluginHistory.length) ||
+    (e.target.value === '' && !props.pluginHistory.length && !props.quickLaunchLength) ||
     props.currentPlugin.name;
   switch (key) {
     case 'up':
