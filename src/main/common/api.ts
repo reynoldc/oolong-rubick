@@ -415,9 +415,161 @@ class API extends DBInstance {
     return true;
   }
 
+  private iconCache = new Map<string, string | null>();
+
+  /**
+   * 取单个文件/应用图标，返回 dataURL。
+   *
+   * 背景：Electron 的 app.getFileIcon 在 Windows 上对相当一部分 exe
+   * 会返回同一张「空白文档」占位图（实测 40 个不同应用返回完全相同的
+   * dataURL），因此不能只依赖它，改为系统提取优先、Electron 兜底。
+   */
   public async getFileIcon({ data }) {
-    const nativeImage = await app.getFileIcon(data.path, { size: 'normal' });
-    return nativeImage.toDataURL();
+    const target = data?.path;
+    const batch = this.batchGetFileIcons({ data: { paths: [target] } });
+    if (batch[target]) return batch[target];
+    try {
+      const nativeImage = await app.getFileIcon(target, { size: 'normal' });
+      return nativeImage.toDataURL();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  /**
+   * 批量取应用图标（Windows）。
+   * 逐个起 PowerShell 太慢（150+ 应用约 40s），改为一次进程内循环提取。
+   *
+   * @param paths exe 路径数组
+   * @returns { [path]: dataURL }，取不到的不返回
+   */
+  public batchGetFileIcons({ data }) {
+    const paths: string[] = Array.isArray(data?.paths) ? data.paths : [];
+    const result: Record<string, string> = {};
+    if (!paths.length) return result;
+    // 先查缓存
+    const pending: string[] = [];
+    for (const p of paths) {
+      if (this.iconCache.has(p)) {
+        const hit = this.iconCache.get(p);
+        if (hit) result[p] = hit;
+      } else {
+        pending.push(p);
+      }
+    }
+    if (!pending.length) return result;
+
+    if (process.platform !== 'win32') return result;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { execFileSync } = require('child_process');
+      const outDir = app.getPath('temp');
+      const stamp = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const outFile = path.join(outDir, `rubick-icons-${stamp}.json`);
+
+      // 把路径写成 JSON 传参，避免拼字符串转义出错
+      const inputFile = path.join(outDir, `rubick-icons-${stamp}-in.json`);
+      fs.writeFileSync(inputFile, JSON.stringify(pending), 'utf8');
+
+      const script = [
+        'Add-Type -AssemblyName System.Drawing',
+        '$paths = Get-Content -Raw -Encoding UTF8 ' +
+          `'${inputFile.replace(/'/g, "''")}'` +
+          ' | ConvertFrom-Json',
+        '$out = @{}',
+        'foreach ($p in $paths) {',
+        '  try {',
+        '    $i = [System.Drawing.Icon]::ExtractAssociatedIcon($p)',
+        '    if ($i) {',
+        '      $ms = New-Object System.IO.MemoryStream',
+        '      $i.ToBitmap().Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)',
+        '      $out[$p] = [Convert]::ToBase64String($ms.ToArray())',
+        '      $ms.Dispose()',
+        '      $i.Dispose()',
+        '    }',
+        '  } catch {}',
+        '}',
+        '$out | ConvertTo-Json -Compress | Set-Content -Encoding UTF8 ' +
+          `'${outFile.replace(/'/g, "''")}'`,
+      ].join(';');
+
+      execFileSync(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-Command', script],
+        { timeout: 60000, windowsHide: true, maxBuffer: 64 * 1024 * 1024 }
+      );
+
+      let parsed: any = {};
+      try {
+        if (fs.existsSync(outFile)) {
+          // PowerShell 的 Set-Content -Encoding UTF8 会写入 BOM，
+          // 直接 JSON.parse 会失败，需先剥离
+          const raw = fs.readFileSync(outFile, 'utf8').replace(/^\uFEFF/, '');
+          parsed = JSON.parse(raw) || {};
+        }
+      } catch (e) {
+        parsed = {};
+      }
+
+      for (const p of pending) {
+        const b64 = parsed[p];
+        const url = b64 ? `data:image/png;base64,${b64}` : null;
+        this.iconCache.set(p, url);
+        if (url) result[p] = url;
+      }
+
+      // 清理临时文件
+      for (const f of [inputFile, outFile]) {
+        try {
+          fs.existsSync(f) && fs.unlinkSync(f);
+        } catch (e) {
+          //
+        }
+      }
+    } catch (e) {
+      // 批量失败则该批不填，前台会用 Electron 兜底
+    }
+    return result;
+  }
+
+  /**
+   * Windows：用 System.Drawing 提取关联图标，返回 PNG dataURL。
+   * 通过 PowerShell 调用，避免引入额外原生依赖。
+   */
+  private extractIconFromWindows(filePath: string): string | null {
+    if (process.platform !== 'win32' || !filePath) return null;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { execFileSync } = require('child_process');
+      const tmp = path.join(
+        app.getPath('temp'),
+        `rubick-icon-${Date.now()}-${Math.random().toString(36).slice(2)}.png`
+      );
+      const escaped = filePath.replace(/'/g, "''");
+      const outEscaped = tmp.replace(/'/g, "''");
+      const script = [
+        'Add-Type -AssemblyName System.Drawing',
+        `$i=[System.Drawing.Icon]::ExtractAssociatedIcon('${escaped}')`,
+        'if($i){$b=$i.ToBitmap();$b.Save(\'' + outEscaped + '\',[System.Drawing.Imaging.ImageFormat]::Png);$b.Dispose();$i.Dispose()}',
+      ].join(';');
+      execFileSync(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-Command', script],
+        { timeout: 8000, windowsHide: true }
+      );
+      if (!fs.existsSync(tmp)) return null;
+      const buf = fs.readFileSync(tmp);
+      try {
+        fs.unlinkSync(tmp);
+      } catch (e) {
+        //
+      }
+      if (!buf.length) return null;
+      return `data:image/png;base64,${buf.toString('base64')}`;
+    } catch (e) {
+      return null;
+    }
   }
 
   public shellBeep() {

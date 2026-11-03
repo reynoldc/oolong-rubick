@@ -39,6 +39,12 @@
 // ===== 液态玻璃主题（纯 CSS 方案）=====
 // 窗口保持不透明，由渲染层自己绘制玻璃质感：
 // 深蓝紫渐变底 + 多层径向光晕 + 半透明面板 + 高光描边 + 柔和内阴影。
+//
+// 以下变量由渲染进程启动时按设置页参数注入：
+//   --glass-transparency  面板不透明度 0~1
+//   --glass-blur          模糊半径
+//   --glass-accent        主色调
+//   --glass-bg-from/to    背景起止色
 .liquid-glass {
   --color-text-primary: rgba(255, 255, 255, 0.96);
   --color-text-content: #eef3ff;
@@ -50,14 +56,14 @@
   --color-border-light: rgba(255, 255, 255, 0.12);
 }
 
-// 背景层：渐变 + 两团彩色光晕，模拟玻璃后方透出的光线
+// 背景层：渐变 + 三团彩色光晕（颜色取自主色调派生）
 html.liquid-glass,
 body.liquid-glass {
   background: var(--glass-bg-to);
   background-image:
     radial-gradient(
       880px 420px at 12% -10%,
-      rgba(96, 165, 250, 0.32),
+      color-mix(in srgb, var(--glass-accent) 34%, transparent),
       transparent 62%
     ),
     radial-gradient(
@@ -73,7 +79,7 @@ body.liquid-glass {
     linear-gradient(
       165deg,
       var(--glass-bg-from) 0%,
-      var(--glass-bg-via) 46%,
+      var(--glass-bg-to) 62%,
       var(--glass-bg-to) 100%
     );
   background-attachment: fixed;
@@ -97,11 +103,13 @@ body.liquid-glass #components-layout {
 }
 
 // ===== 搜索栏：玻璃质感 =====
+// 面板底色用 color-mix 按 --glass-transparency 动态计算，
+// 透明度由设置页滑块控制（越大越实，文字越清晰）。
 .liquid-glass .rubick-select {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.09),
-    rgba(255, 255, 255, 0.035)
+  background: color-mix(
+    in srgb,
+    var(--glass-bg-from) calc(var(--glass-transparency) * 100%),
+    transparent
   );
   backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
@@ -126,7 +134,11 @@ body.liquid-glass #components-layout {
 
 // ===== 结果/快速启动列表：玻璃面板 =====
 .liquid-glass .options {
-  background: rgba(16, 24, 42, 0.55);
+  background: color-mix(
+    in srgb,
+    var(--glass-bg-from) calc(var(--glass-transparency) * 100%),
+    transparent
+  );
   backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border-top: 1px solid var(--glass-border);

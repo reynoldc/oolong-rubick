@@ -14,6 +14,7 @@ import {
   Typography,
   Select,
   Switch,
+  Slider,
   Avatar,
   Popconfirm,
   Collapse,
@@ -67,6 +68,7 @@ createApp(App)
   .use(Radio)
   .use(Select)
   .use(Switch)
+  .use(Slider)
   .use(Avatar)
   .use(Collapse)
   .use(List)
